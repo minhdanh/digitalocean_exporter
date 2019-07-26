@@ -7,7 +7,7 @@ pipeline:
     image: golang:alpine
     pull: true
     commands:
-      - apk add -U git make
+      - apk add -U git make gcc
       - make fmt
       - make vet
       - make lint
