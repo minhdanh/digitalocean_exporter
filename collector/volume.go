@@ -54,8 +54,14 @@ func (c *VolumeCollector) Collect(ch chan<- prometheus.Metric) {
 	opt := &godo.ListVolumeParams{ListOptions: &godo.ListOptions{}}
 
 	for {
-		pVolumes, resp, err := client.Storage.ListVolumes(ctx, opt)
+		pVolumes, resp, err := c.client.Storage.ListVolumes(ctx, opt)
+
 		if err != nil {
+			c.errors.WithLabelValues("volume").Add(1)
+			level.Warn(c.logger).Log(
+				"msg", "can't list volumes",
+				"err", err,
+			)
 			return
 		}
 
@@ -69,19 +75,10 @@ func (c *VolumeCollector) Collect(ch chan<- prometheus.Metric) {
 
 		page, err := resp.Links.CurrentPage()
 		if err != nil {
-			fmt.Print(err)
+			return
 		}
 
 		opt.ListOptions.Page = page + 1
-	}
-
-	if err != nil {
-		c.errors.WithLabelValues("volume").Add(1)
-		level.Warn(c.logger).Log(
-			"msg", "can't list volumes",
-			"err", err,
-		)
-		return
 	}
 
 	for _, vol := range volumes {
