@@ -49,7 +49,32 @@ func (c *VolumeCollector) Describe(ch chan<- *prometheus.Desc) {
 func (c *VolumeCollector) Collect(ch chan<- prometheus.Metric) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
-	volumes, _, err := c.client.Storage.ListVolumes(ctx, nil)
+
+	volumes := []godo.Volume{}
+	opt := &godo.ListVolumeParams{ListOptions: &godo.ListOptions{}}
+
+	for {
+		pVolumes, resp, err := client.Storage.ListVolumes(ctx, opt)
+		if err != nil {
+			return
+		}
+
+		for _, d := range pVolumes {
+			volumes = append(volumes, d)
+		}
+
+		if resp.Links == nil || resp.Links.IsLastPage() {
+			break
+		}
+
+		page, err := resp.Links.CurrentPage()
+		if err != nil {
+			fmt.Print(err)
+		}
+
+		opt.ListOptions.Page = page + 1
+	}
+
 	if err != nil {
 		c.errors.WithLabelValues("volume").Add(1)
 		level.Warn(c.logger).Log(
