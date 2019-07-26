@@ -1,6 +1,6 @@
 workspace:
   base: /go
-  path: src/github.com/metalmatze/digitalocean_exporter
+  path: src/github.com/minhdanh/digitalocean_exporter
 
 pipeline:
   build:
@@ -16,25 +16,12 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
-  release:
-    image: golang:alpine
-    commands:
-      - apk add -U git make
-      - make release
-    when:
-      event: tag
-
   docker:
     image: plugins/docker
-    repo: metalmatze/digitalocean_exporter
+    repo: minhdanh/digitalocean_exporter
     secrets: [ docker_username, docker_password ]
-    tag: [ 0.5 ]
-    when:
-      event: tag
-
-  github:
-    image: plugins/github-release
-    secrets: [ github_token ]
-    files: dist/*
+    tags:
+      - latest
+      - ${DRONE_TAG}
     when:
       event: tag
