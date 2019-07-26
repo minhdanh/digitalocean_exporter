@@ -2,6 +2,8 @@ package collector
 
 import (
 	"context"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/digitalocean/godo"
@@ -24,7 +26,7 @@ type VolumeCollector struct {
 func NewVolumeCollector(logger log.Logger, errors *prometheus.CounterVec, client *godo.Client, timeout time.Duration) *VolumeCollector {
 	errors.WithLabelValues("volume").Add(0)
 
-	labels := []string{"id", "name", "region"}
+	labels := []string{"id", "name", "region", "droplet_ids"}
 	return &VolumeCollector{
 		logger:  logger,
 		errors:  errors,
@@ -82,10 +84,16 @@ func (c *VolumeCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	for _, vol := range volumes {
+		var dropletIDs []string
+		for _, i := range vol.DropletIDs {
+			dropletIDs = append(dropletIDs, strconv.Itoa(i))
+		}
+
 		labels := []string{
 			vol.ID,
 			vol.Name,
 			vol.Region.Slug,
+			strings.Join(dropletIDs, ","),
 		}
 
 		ch <- prometheus.MustNewConstMetric(
